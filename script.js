@@ -46,7 +46,8 @@ document.getElementById("readButton").addEventListener("click", async () => {
       return;
     }
 
-    const text = result.responses[0].fullTextAnnotation?.text;
+    // fullTextAnnotation を優先して使用
+    let text = result.responses[0].fullTextAnnotation?.text;
 
     if (!text) {
       document.getElementById("rawText").textContent =
@@ -54,6 +55,34 @@ document.getElementById("readButton").addEventListener("click", async () => {
       return;
     }
 
+    // -----------------------------
+    // ★ 改行を整えるフィルター ★
+    // -----------------------------
+
+    // ① 連続する空行を1つにまとめる
+    text = text.replace(/\n{2,}/g, "\n");
+
+    // ② 行頭・行末の空白を削除
+    text = text
+      .split("\n")
+      .map(line => line.trim())
+      .join("\n");
+
+    // ③ レシートでよくあるパターンを整形
+    text = text.replace(/(小計|合計|税込|税抜)/g, "\n$1\n");
+
+    // ④ 金額の後に改行を入れる（例：123 → 123\n）
+    text = text.replace(/(¥?\d{2,6})\s/g, "$1\n");
+
+    // ⑤ 日付の前後に改行
+    text = text.replace(/(\d{4}\/\d{1,2}\/\d{1,2})/g, "\n$1\n");
+
+    // ⑥ 再度連続改行を整理
+    text = text.replace(/\n{2,}/g, "\n");
+
+    // -----------------------------
+    // ★ 整形後のテキストを表示 ★
+    // -----------------------------
     document.getElementById("rawText").textContent = text;
 
   } catch (e) {
