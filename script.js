@@ -7,43 +7,59 @@ document.getElementById("readButton").addEventListener("click", async () => {
 
   document.getElementById("rawText").textContent = "読み取り中…";
 
-  // 画像をBase64に変換
-  const base64 = await toBase64(file);
+  try {
+    // Base64変換
+    const base64 = await toBase64(file);
 
-  // Vision API に送信
-  const response = await fetch(
-    "https://vision.googleapis.com/v1/images:annotate?key=AIzaSyD43_tOMm1iiD6tib0jKFyMBN3AGRuTp4g",
-    {
-      method: "POST",
-      body: JSON.stringify({
-        requests: [
-          {
-            image: { content: base64 },
-            features: [{ type: "TEXT_DETECTION" }]
-          }
-        ]
-      })
+    // Vision API 呼び出し
+    const response = await fetch(
+      "https://vision.googleapis.com/v1/images:annotate?key=YOUR_API_KEY",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          requests: [
+            {
+              image: { content: base64 },
+              features: [{ type: "TEXT_DETECTION" }]
+            }
+          ]
+        })
+      }
+    );
+
+    // HTTPエラーを検出
+    if (!response.ok) {
+      const errText = await response.text();
+      document.getElementById("rawText").textContent =
+        "APIエラー:\n" + errText;
+      return;
     }
-  );
 
-  const result = await response.json();
-  const text = result.responses[0].fullTextAnnotation.text;
+    const result = await response.json();
 
-  document.getElementById("rawText").textContent = text;
-
-  // 金額抽出
-  const lines = text.split("\n");
-  const records = document.getElementById("records");
-  records.innerHTML = "";
-
-  lines.forEach(line => {
-    const match = line.match(/([0-9,]+)円/);
-    if (match) {
-      const li = document.createElement("li");
-      li.textContent = match[0];
-      records.appendChild(li);
+    // Vision API のエラーを検出
+    if (result.responses[0].error) {
+      document.getElementById("rawText").textContent =
+        "Vision API エラー:\n" +
+        JSON.stringify(result.responses[0].error, null, 2);
+      return;
     }
-  });
+
+    const text = result.responses[0].fullTextAnnotation?.text;
+
+    if (!text) {
+      document.getElementById("rawText").textContent =
+        "テキストが検出できませんでした。";
+      return;
+    }
+
+    document.getElementById("rawText").textContent = text;
+
+  } catch (e) {
+    document.getElementById("rawText").textContent =
+      "JavaScriptエラー:\n" + e.message;
+  }
 });
 
 // Base64変換
