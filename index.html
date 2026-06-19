@@ -5,6 +5,13 @@
   <title>レシート家計簿</title>
   <link rel="stylesheet" href="style.css">
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js"></script>
+<script>
+  window.Tesseract = Tesseract;
+  Tesseract.createWorker({
+    langPath: "https://tessdata.projectnaptha.com/4.0.0"
+  });
+</script>
+
 </head>
 <body>
   <h1>レシート家計簿（β）</h1>
