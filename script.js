@@ -1,20 +1,3 @@
-// 画像を縮小してからOCRにかける（スマホ写真対策）
-function resizeImage(file) {
-  return new Promise(resolve => {
-    const img = new Image();
-    img.onload = () => {
-      const canvas = document.createElement("canvas");
-      const scale = 1000 / img.width;
-      canvas.width = 1000;
-      canvas.height = img.height * scale;
-      const ctx = canvas.getContext("2d");
-      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-      canvas.toBlob(resolve, "image/jpeg", 0.8);
-    };
-    img.src = URL.createObjectURL(file);
-  });
-}
-
 document.getElementById("readButton").addEventListener("click", async () => {
   const file = document.getElementById("imageInput").files[0];
   if (!file) {
@@ -24,13 +7,27 @@ document.getElementById("readButton").addEventListener("click", async () => {
 
   document.getElementById("rawText").textContent = "読み取り中…";
 
-  // 画像縮小
-  const resized = await resizeImage(file);
+  // 画像をBase64に変換
+  const base64 = await toBase64(file);
 
-  // OCR実行（日本語）
-  const { data: { text } } = await Tesseract.recognize(resized, "jpn", {
-    langPath: "https://tessdata.projectnaptha.com/4.0.0"
-  });
+  // Vision API に送信
+  const response = await fetch(
+    "https://vision.googleapis.com/v1/images:annotate?key=AIzaSyD43_tOMm1iiD6tib0jKFyMBN3AGRuTp4g",
+    {
+      method: "POST",
+      body: JSON.stringify({
+        requests: [
+          {
+            image: { content: base64 },
+            features: [{ type: "TEXT_DETECTION" }]
+          }
+        ]
+      })
+    }
+  );
+
+  const result = await response.json();
+  const text = result.responses[0].fullTextAnnotation.text;
 
   document.getElementById("rawText").textContent = text;
 
@@ -48,3 +45,15 @@ document.getElementById("readButton").addEventListener("click", async () => {
     }
   });
 });
+
+// Base64変換
+function toBase64(file) {
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const base64 = reader.result.split(",")[1];
+      resolve(base64);
+    };
+    reader.readAsDataURL(file);
+  });
+}
