@@ -13,7 +13,7 @@ document.getElementById("readButton").addEventListener("click", async () => {
 
     // Vision API 呼び出し
     const response = await fetch(
-      "https://vision.googleapis.com/v1/images:annotate?key=AIzaSyD43_tOMm1iiD6tib0jKFyMBN3AGRuTp4g",
+      "https://vision.googleapis.com/v1/images:annotate?key=AIzaSyByFydyPFWMw3ArWS58rQ0y3rXIIUaTrEk",
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
