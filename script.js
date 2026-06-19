@@ -28,7 +28,7 @@ document.getElementById("readButton").addEventListener("click", async () => {
     const base64 = await toBase64(file);
 
     const response = await fetch(
-      "https://vision.googleapis.com/v1/images:annotate?key=YOUR_API_KEY",
+      "https://vision.googleapis.com/v1/images:annotate?key=AIzaSyByFydyPFWMw3ArWS58rQ0y3rXIIUaTrEk",
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
