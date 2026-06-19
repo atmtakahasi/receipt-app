@@ -42,13 +42,6 @@ button:active {
   border: 1px solid #ffd1e8;
 }
 
-#result p {
-  background: #ffe3f2;
-  padding: 10px;
-  border-radius: 10px;
-  margin-bottom: 10px;
-}
-
 #records li {
   background: #fff;
   padding: 12px;
@@ -56,4 +49,3 @@ button:active {
   margin-bottom: 10px;
   border-left: 6px solid #ff9fd6;
 }
-

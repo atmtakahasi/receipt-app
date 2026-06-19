@@ -2,28 +2,28 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <title>レシート家計簿</title>
-  <link rel="stylesheet" href="style.css">
-  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js"></script>
-<script>
-  window.Tesseract = Tesseract;
-  Tesseract.createWorker({
-    langPath: "https://tessdata.projectnaptha.com/4.0.0"
-  });
-</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>レシート家計簿（β）</title>
 
+  <!-- Tesseract.js -->
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+
+  <!-- 日本語モデルの読み込み安定化 -->
+  <script>
+    window.Tesseract = Tesseract;
+  </script>
+
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
+
   <h1>レシート家計簿（β）</h1>
 
-  <input type="file" accept="image/*" id="imageInput">
-
-  <button id="readBtn">読み取る</button>
-
-  <pre id="rawText"></pre>
+  <input type="file" id="imageInput" accept="image/*">
+  <button id="readButton">読み取る</button>
 
   <h2>抽出結果</h2>
-  <div id="result"></div>
+  <pre id="rawText"></pre>
 
   <h2>家計簿</h2>
   <ul id="records"></ul>

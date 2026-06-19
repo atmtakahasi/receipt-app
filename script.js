@@ -1,55 +1,50 @@
-const imageInput = document.getElementById("imageInput");
-const readBtn = document.getElementById("readBtn");
-const rawText = document.getElementById("rawText");
-const result = document.getElementById("result");
-const recordsList = document.getElementById("records");
+// 画像を縮小してからOCRにかける（スマホ写真対策）
+function resizeImage(file) {
+  return new Promise(resolve => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      const scale = 1000 / img.width;
+      canvas.width = 1000;
+      canvas.height = img.height * scale;
+      const ctx = canvas.getContext("2d");
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      canvas.toBlob(resolve, "image/jpeg", 0.8);
+    };
+    img.src = URL.createObjectURL(file);
+  });
+}
 
-let records = JSON.parse(localStorage.getItem("records") || "[]");
-renderRecords();
-
-readBtn.onclick = async () => {
-  if (!imageInput.files[0]) {
-    alert("画像を選んでください");
+document.getElementById("readButton").addEventListener("click", async () => {
+  const file = document.getElementById("imageInput").files[0];
+  if (!file) {
+    alert("画像を選択してください");
     return;
   }
 
-  const file = imageInput.files[0];
+  document.getElementById("rawText").textContent = "読み取り中…";
 
-  const { data: { text } } = await Tesseract.recognize(file, "jpn");
-  rawText.textContent = text;
+  // 画像縮小
+  const resized = await resizeImage(file);
 
-  const amount = extractAmount(text);
-  const date = extractDate(text);
-
-  result.innerHTML = `
-    <p>金額：${amount || "不明"}</p>
-    <p>日付：${date || "不明"}</p>
-  `;
-
-  if (amount && date) {
-    const record = { amount, date };
-    records.push(record);
-    localStorage.setItem("records", JSON.stringify(records));
-    renderRecords();
-  }
-};
-
-function extractAmount(text) {
-  const match = text.match(/¥?\s?(\d{2,6})/);
-  return match ? match[1] : null;
-}
-
-function extractDate(text) {
-  const match = text.match(/(\d{4}[\/\-年]\d{1,2}[\/\-月]\d{1,2})/);
-  return match ? match[1] : null;
-}
-
-function renderRecords() {
-  recordsList.innerHTML = "";
-  records.forEach(r => {
-    const li = document.createElement("li");
-    li.textContent = `${r.date} : ¥${r.amount}`;
-    recordsList.appendChild(li);
+  // OCR実行（日本語）
+  const { data: { text } } = await Tesseract.recognize(resized, "jpn", {
+    langPath: "https://tessdata.projectnaptha.com/4.0.0"
   });
 
-}
+  document.getElementById("rawText").textContent = text;
+
+  // 金額抽出
+  const lines = text.split("\n");
+  const records = document.getElementById("records");
+  records.innerHTML = "";
+
+  lines.forEach(line => {
+    const match = line.match(/([0-9,]+)円/);
+    if (match) {
+      const li = document.createElement("li");
+      li.textContent = match[0];
+      records.appendChild(li);
+    }
+  });
+});
