@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>レシート家計簿</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js"></script>
+</head>
+<body>
+  <h1>レシート家計簿（β）</h1>
+
+  <input type="file" accept="image/*" id="imageInput">
+
+  <button id="readBtn">読み取る</button>
+
+  <pre id="rawText"></pre>
+
+  <h2>抽出結果</h2>
+  <div id="result"></div>
+
+  <h2>家計簿</h2>
+  <ul id="records"></ul>
+
+  <script src="script.js"></script>
+</body>
+</html>
