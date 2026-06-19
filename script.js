@@ -16,7 +16,7 @@ document.getElementById("readButton").addEventListener("click", async () => {
     const base64 = await toBase64(file);
 
     const response = await fetch(
-      "https://vision.googleapis.com/v1/images:annotate?key=AIzaSyB2VbazGuqD8k5U2zuy4GQaVTkmMVV0K-w",
+      "https://vision.googleapis.com/v1/images:annotate?key=YOUR_API_KEY",
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -58,14 +58,14 @@ document.getElementById("readButton").addEventListener("click", async () => {
     text = cleanText(text);
     document.getElementById("rawText").textContent = text;
 
-    // 店名＋合計金額抽出
-    const summary = extractReceiptSummary(text);
+    // 必要な情報だけ抽出
+    const info = extractImportantInfo(text);
 
     // 家計簿に追加
     records.push({
-      store: summary.storeName,
-      total: summary.total,
-      date: new Date().toLocaleDateString("ja-JP")
+      store: info.store,
+      total: info.total,
+      date: info.date
     });
 
     localStorage.setItem("records", JSON.stringify(records));
@@ -94,54 +94,50 @@ function cleanText(text) {
   text = text.replace(/\n{2,}/g, "\n");
   text = text.split("\n").map(l => l.trim()).join("\n");
   text = text.replace(/(合計|総額|計|税込|税抜)/g, "\n$1\n");
-  text = text.replace(/(¥?\d{2,7})\s/g, "$1\n");
+  text = text.replace(/(¥?\d{2,8})\s/g, "$1\n");
   return text.replace(/\n{2,}/g, "\n");
 }
 
-// 店名＋合計金額抽出
-function extractReceiptSummary(text) {
+// 必要な情報だけ抽出（店名・合計金額・日付）
+function extractImportantInfo(text) {
   const lines = text.split("\n").map(l => l.trim()).filter(l => l);
   const jp = /[\u3040-\u30FF\u4E00-\u9FFF]/;
 
   // --- 店名 ---
-  let storeName = null;
+  let store = null;
 
-  // ① 最初の日本語行
   for (const line of lines) {
-    if (jp.test(line) && line.length >= 2) {
-      storeName = line;
+    if (jp.test(line) && line.length >= 2 && !/合計|小計|税込|領収|レシート/.test(line)) {
+      store = line;
       break;
     }
   }
 
-  // ② 「店」「スーパー」など
-  if (!storeName) {
+  if (!store) {
     for (const line of lines) {
       if (/(店|スーパー|ストア|ショップ|薬局|センター)/.test(line)) {
-        storeName = line;
+        store = line;
         break;
       }
     }
   }
 
-  // ③ 最初の行
-  if (!storeName) storeName = lines[0] || "不明な店舗";
+  if (!store) store = lines[0] || "不明な店舗";
 
   // --- 合計金額 ---
   let total = null;
 
   for (const line of lines) {
-    const m = line.match(/(合計|総額|計|TOTAL)[^\d]*(¥?\d{2,7})/i);
+    const m = line.match(/(合計|総額|計|TOTAL)[^\d]*(¥?\d{2,8})/i);
     if (m) {
       total = parseInt(m[2].replace("¥", ""), 10);
       break;
     }
   }
 
-  // ④ 見つからなければ最大値
   if (!total) {
     const nums = lines
-      .map(l => l.match(/¥?(\d{2,7})/))
+      .map(l => l.match(/¥?(\d{2,8})/))
       .filter(Boolean)
       .map(m => parseInt(m[1], 10));
 
@@ -150,7 +146,22 @@ function extractReceiptSummary(text) {
     }
   }
 
-  return { storeName, total };
+  // --- 日付 ---
+  let date = null;
+
+  for (const line of lines) {
+    const d = line.match(/(\d{4}[\/\-\.]\d{1,2}[\/\-\.]\d{1,2})/);
+    if (d) {
+      date = d[1].replace(/[\.]/g, "/");
+      break;
+    }
+  }
+
+  if (!date) {
+    date = new Date().toLocaleDateString("ja-JP");
+  }
+
+  return { store, total, date };
 }
 
 // 家計簿表示
