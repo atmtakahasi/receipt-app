@@ -51,4 +51,5 @@ function renderRecords() {
     li.textContent = `${r.date} : ¥${r.amount}`;
     recordsList.appendChild(li);
   });
+
 }
