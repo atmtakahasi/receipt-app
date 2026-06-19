@@ -1,3 +1,20 @@
+// カテゴリとキーワード
+const CATEGORY_KEYWORDS = {
+  "食料品": ["米", "パン", "牛乳", "卵", "肉", "野菜", "果物", "おにぎり"],
+  "日用品": ["ティッシュ", "洗剤", "スポンジ", "歯磨き", "シャンプー"],
+  "外食": ["マクド", "すき家", "ガスト", "松屋", "吉野家", "カフェ"],
+  "交通": ["JR", "バス", "切符", "乗車", "高速"],
+  "医療": ["薬", "病院", "クリニック", "処方"],
+  "娯楽": ["ゲーム", "映画", "カラオケ", "本", "漫画"],
+  "仕事": ["コピー", "文具", "交通費", "会議"],
+  "その他": []
+};
+
+// 家計簿データ
+let records = JSON.parse(localStorage.getItem("records") || "[]");
+renderKakeibo();
+
+// OCRボタン
 document.getElementById("readButton").addEventListener("click", async () => {
   const file = document.getElementById("imageInput").files[0];
   if (!file) {
@@ -8,12 +25,10 @@ document.getElementById("readButton").addEventListener("click", async () => {
   document.getElementById("rawText").textContent = "読み取り中…";
 
   try {
-    // Base64変換
     const base64 = await toBase64(file);
 
-    // Vision API 呼び出し
     const response = await fetch(
-      "https://vision.googleapis.com/v1/images:annotate?key=AIzaSyByFydyPFWMw3ArWS58rQ0y3rXIIUaTrEk",
+      "https://vision.googleapis.com/v1/images:annotate?key=YOUR_API_KEY",
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -28,7 +43,6 @@ document.getElementById("readButton").addEventListener("click", async () => {
       }
     );
 
-    // HTTPエラーを検出
     if (!response.ok) {
       const errText = await response.text();
       document.getElementById("rawText").textContent =
@@ -38,7 +52,6 @@ document.getElementById("readButton").addEventListener("click", async () => {
 
     const result = await response.json();
 
-    // Vision API のエラーを検出
     if (result.responses[0].error) {
       document.getElementById("rawText").textContent =
         "Vision API エラー:\n" +
@@ -46,50 +59,80 @@ document.getElementById("readButton").addEventListener("click", async () => {
       return;
     }
 
-    // fullTextAnnotation を優先して使用
     let text = result.responses[0].fullTextAnnotation?.text;
-
     if (!text) {
       document.getElementById("rawText").textContent =
         "テキストが検出できませんでした。";
       return;
     }
 
-    // -----------------------------
-    // ★ 改行を整えるフィルター ★
-    // -----------------------------
-
-    // ① 連続する空行を1つにまとめる
-    text = text.replace(/\n{2,}/g, "\n");
-
-    // ② 行頭・行末の空白を削除
-    text = text
-      .split("\n")
-      .map(line => line.trim())
-      .join("\n");
-
-    // ③ レシートでよくあるパターンを整形
-    text = text.replace(/(小計|合計|税込|税抜)/g, "\n$1\n");
-
-    // ④ 金額の後に改行を入れる（例：123 → 123\n）
-    text = text.replace(/(¥?\d{2,6})\s/g, "$1\n");
-
-    // ⑤ 日付の前後に改行
-    text = text.replace(/(\d{4}\/\d{1,2}\/\d{1,2})/g, "\n$1\n");
-
-    // ⑥ 再度連続改行を整理
-    text = text.replace(/\n{2,}/g, "\n");
-
-    // -----------------------------
-    // ★ 整形後のテキストを表示 ★
-    // -----------------------------
+    // 整形フィルター
+    text = cleanText(text);
     document.getElementById("rawText").textContent = text;
+
+    // 家計簿に追加
+    processKakeibo(text);
 
   } catch (e) {
     document.getElementById("rawText").textContent =
       "JavaScriptエラー:\n" + e.message;
   }
 });
+
+// テキスト整形
+function cleanText(text) {
+  text = text.replace(/\n{2,}/g, "\n");
+  text = text.split("\n").map(l => l.trim()).join("\n");
+  text = text.replace(/(小計|合計|税込|税抜)/g, "\n$1\n");
+  text = text.replace(/(¥?\d{2,6})\s/g, "$1\n");
+  text = text.replace(/(\d{4}\/\d{1,2}\/\d{1,2})/g, "\n$1\n");
+  return text.replace(/\n{2,}/g, "\n");
+}
+
+// 家計簿処理
+function processKakeibo(text) {
+  const lines = text.split("\n");
+
+  lines.forEach(line => {
+    const match = line.match(/(.+?)\s*(¥?\d{2,6})/);
+    if (!match) return;
+
+    const item = match[1].trim();
+    const amount = parseInt(match[2].replace("¥", ""), 10);
+    const category = detectCategory(item);
+
+    records.push({ item, amount, category });
+  });
+
+  localStorage.setItem("records", JSON.stringify(records));
+  renderKakeibo();
+}
+
+// カテゴリ判定
+function detectCategory(item) {
+  for (const [cat, keywords] of Object.entries(CATEGORY_KEYWORDS)) {
+    if (keywords.some(k => item.includes(k))) {
+      return cat;
+    }
+  }
+  return "その他";
+}
+
+// 家計簿表示
+function renderKakeibo() {
+  const container = document.getElementById("kakeibo");
+  container.innerHTML = records
+    .map(
+      r => `
+      <div class="card">
+        <div class="cat">${r.category}</div>
+        <div class="item">${r.item}</div>
+        <div class="yen">¥${r.amount}</div>
+      </div>
+    `
+    )
+    .join("");
+}
 
 // Base64変換
 function toBase64(file) {
